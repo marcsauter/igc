@@ -82,15 +82,24 @@ func (p FixSlice) Landing() Fix {
 }
 
 type Flight struct {
-	Date  time.Time
-	Site  string
-	Fixes FixSlice
+	RawDate     string
+	Date        time.Time
+	TakeOff     time.Time
+	Site        string
+	TakeOffSite string
+	Landing     time.Time
+	LandingSite string
+	Duration    time.Duration
+	Fixes       FixSlice
 }
 
 func NewFlight(r io.Reader) (*Flight, error) {
 	flight := &Flight{}
 	flight.Fixes = FixSlice{}
 	if err := flight.Parse(r); err != nil {
+		return nil, err
+	}
+	if err := flight.Stat(); err != nil {
 		return nil, err
 	}
 	return flight, nil
@@ -111,17 +120,23 @@ func (f *Flight) Parse(r io.Reader) error {
 	return nil
 }
 
-func (f *Flight) Stat() []string {
+func (f *Flight) Stat() error {
 	sort.Sort(f.Fixes)
 	takeOff := f.Fixes.TakeOff()
-	takeOffSite := f.Site
-	if len(takeOffSite) == 0 {
-		takeOffSite = LookupTakeOffSite(takeOff.Latitude, takeOff.Longitude)
+	f.TakeOff = takeOff.Time
+	f.TakeOffSite = f.Site
+	if len(f.TakeOffSite) == 0 {
+		f.TakeOffSite = LookupTakeOffSite(takeOff.Latitude, takeOff.Longitude)
 	}
 	landing := f.Fixes.Landing()
-	landingSite := LookupLandingSite(landing.Latitude, landing.Longitude)
-	duration := landing.Time.Sub(takeOff.Time).Minutes()
-	return []string{f.Date.Format("01.02.2006"), takeOff.Time.Format("15:04"), takeOffSite, landing.Time.Format("15:04"), landingSite, fmt.Sprintf("%.2f", duration)}
+	f.Landing = landing.Time
+	f.LandingSite = LookupLandingSite(landing.Latitude, landing.Longitude)
+	f.Duration = f.Landing.Sub(f.TakeOff)
+	return nil
+}
+
+func (f *Flight) Record() []string {
+	return []string{f.Date.Format("02.01.2006"), f.TakeOff.Format("15:04"), f.TakeOffSite, f.Landing.Format("15:04"), f.LandingSite, fmt.Sprintf("%.2f", f.Duration.Minutes())}
 }
 
 func (f *Flight) parseHrecord(line string) {
@@ -132,6 +147,7 @@ func (f *Flight) parseHrecord(line string) {
 			log.Fatal(err)
 		}
 		f.Date = date
+		f.RawDate = line[5:11]
 	case "SIT":
 		f.Site = strings.Split(line, ": ")[1]
 	}
@@ -140,7 +156,7 @@ func (f *Flight) parseHrecord(line string) {
 func (f *Flight) parseBrecord(line string) {
 	var err error
 	p := Fix{}
-	p.Time, err = time.Parse("150405", line[1:7])
+	p.Time, err = time.Parse("020106 150405", fmt.Sprintf("%s %s", f.RawDate, line[1:7]))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -252,4 +268,18 @@ func LookupPlaceGoogleMaps(lat, lon float64) string {
 		return ""
 	}
 	return result.Results[0].Address
+}
+
+type Flights []Flight
+
+func (f Flights) Len() int {
+	return len(f)
+}
+
+func (f Flights) Less(i, j int) bool {
+	return f[i].TakeOff.Before(f[j].TakeOff)
+}
+
+func (f Flights) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
 }
