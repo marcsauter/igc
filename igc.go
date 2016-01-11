@@ -96,16 +96,16 @@ type Flight struct {
 func NewFlight(r io.Reader) (*Flight, error) {
 	flight := &Flight{}
 	flight.Fixes = FixSlice{}
-	if err := flight.Parse(r); err != nil {
+	if err := flight.parse(r); err != nil {
 		return nil, err
 	}
-	if err := flight.Stat(); err != nil {
+	if err := flight.evaluate(); err != nil {
 		return nil, err
 	}
 	return flight, nil
 }
 
-func (f *Flight) Parse(r io.Reader) error {
+func (f *Flight) parse(r io.Reader) error {
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -118,25 +118,6 @@ func (f *Flight) Parse(r io.Reader) error {
 		}
 	}
 	return nil
-}
-
-func (f *Flight) Stat() error {
-	sort.Sort(f.Fixes)
-	takeOff := f.Fixes.TakeOff()
-	f.TakeOff = takeOff.Time
-	f.TakeOffSite = f.Site
-	if len(f.TakeOffSite) == 0 {
-		f.TakeOffSite = LookupTakeOffSite(takeOff.Latitude, takeOff.Longitude)
-	}
-	landing := f.Fixes.Landing()
-	f.Landing = landing.Time
-	f.LandingSite = LookupLandingSite(landing.Latitude, landing.Longitude)
-	f.Duration = f.Landing.Sub(f.TakeOff)
-	return nil
-}
-
-func (f *Flight) Record() []string {
-	return []string{f.Date.Format("02.01.2006"), f.TakeOff.Format("15:04"), f.TakeOffSite, f.Landing.Format("15:04"), f.LandingSite, fmt.Sprintf("%.2f", f.Duration.Minutes())}
 }
 
 func (f *Flight) parseHrecord(line string) {
@@ -166,6 +147,39 @@ func (f *Flight) parseBrecord(line string) {
 	p.Pressure, _ = strconv.Atoi(line[25:30])
 	p.GNSS, _ = strconv.Atoi(line[30:35])
 	f.Fixes = append(f.Fixes, p)
+}
+
+func (f *Flight) evaluate() error {
+	sort.Sort(f.Fixes)
+	takeOff := f.Fixes.TakeOff()
+	f.TakeOff = takeOff.Time
+	f.TakeOffSite = f.Site
+	if len(f.TakeOffSite) == 0 {
+		f.TakeOffSite = LookupTakeOffSite(takeOff.Latitude, takeOff.Longitude)
+	}
+	landing := f.Fixes.Landing()
+	f.Landing = landing.Time
+	f.LandingSite = LookupLandingSite(landing.Latitude, landing.Longitude)
+	f.Duration = f.Landing.Sub(f.TakeOff)
+	return nil
+}
+
+func (f *Flight) Record() []string {
+	return []string{f.Date.Format("02.01.2006"), f.TakeOff.Format("15:04"), f.TakeOffSite, f.Landing.Format("15:04"), f.LandingSite, fmt.Sprintf("%.2f", f.Duration.Minutes())}
+}
+
+type Flights []*Flight
+
+func (f Flights) Len() int {
+	return len(f)
+}
+
+func (f Flights) Less(i, j int) bool {
+	return f[i].TakeOff.Before(f[j].TakeOff)
+}
+
+func (f Flights) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
 }
 
 func ParseLatitude(l string) float64 {
@@ -216,7 +230,7 @@ func LookupTakeOffSite(lat, lon float64) string {
 			return fmt.Sprintf("%s %s", place, coord)
 		}
 	}
-	place = LookupPlaceGoogleMaps(lat, lon)
+	place = LookupPlaceWithGoogleMaps(lat, lon)
 	if len(place) > 0 {
 		return fmt.Sprintf("%s %s", place, coord)
 	}
@@ -234,14 +248,14 @@ func LookupLandingSite(lat, lon float64) string {
 	if len(place) > 0 {
 		return fmt.Sprintf("%s %s", place, coord)
 	}
-	place = LookupPlaceGoogleMaps(lat, lon)
+	place = LookupPlaceWithGoogleMaps(lat, lon)
 	if len(place) > 0 {
 		return fmt.Sprintf("%s %s", place, coord)
 	}
 	return coord
 }
 
-func LookupPlaceGoogleMaps(lat, lon float64) string {
+func LookupPlaceWithGoogleMaps(lat, lon float64) string {
 	var result struct {
 		Results []struct {
 			Address string `json:"formatted_address"`
@@ -268,18 +282,4 @@ func LookupPlaceGoogleMaps(lat, lon float64) string {
 		return ""
 	}
 	return result.Results[0].Address
-}
-
-type Flights []Flight
-
-func (f Flights) Len() int {
-	return len(f)
-}
-
-func (f Flights) Less(i, j int) bool {
-	return f[i].TakeOff.Before(f[j].TakeOff)
-}
-
-func (f Flights) Swap(i, j int) {
-	f[i], f[j] = f[j], f[i]
 }
