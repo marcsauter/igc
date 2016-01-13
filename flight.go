@@ -71,7 +71,12 @@ func (f *Flight) parseHrecord(line string) {
 		f.Date = date
 		f.RawDate = line[5:11]
 	case "SIT":
-		f.Site = strings.Split(line, ": ")[1]
+		sit := strings.Split(line, ": ")[1]
+		buf := make([]rune, len(sit))
+		for i, b := range sit {
+			buf[i] = rune(b)
+		}
+		f.Site = string(buf)
 	}
 }
 
