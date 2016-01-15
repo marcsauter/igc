@@ -2,6 +2,7 @@ package igc
 
 import (
 	"bufio"
+	"encoding/csv"
 	"fmt"
 	"io"
 	"log"
@@ -10,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/tealeg/xlsx"
 )
 
 //
@@ -73,8 +76,8 @@ func (f *Flight) parseHrecord(line string) {
 	case "SIT":
 		sit := strings.Split(line, ": ")[1]
 		buf := make([]rune, len(sit))
-		for i, b := range sit {
-			buf[i] = rune(b)
+		for i, _ := range sit {
+			buf[i] = rune(sit[i])
 		}
 		f.Site = string(buf)
 	}
@@ -113,12 +116,40 @@ func (f *Flight) evaluate() error {
 }
 
 //
-func (f *Flight) Record() []string {
-	return []string{f.Date.Format("02.01.2006"), f.TakeOff.Format("15:04"), f.TakeOffSite, f.Landing.Format("15:04"), f.LandingSite, fmt.Sprintf("%.2f", f.Duration.Minutes()), f.Filename}
+func (f *Flight) Csv(w *csv.Writer) error {
+	return w.Write([]string{f.Date.Format("02.01.2006"), f.TakeOff.Format("15:04"), f.TakeOffSite, f.Landing.Format("15:04"), f.LandingSite, fmt.Sprintf("%.2f", f.Duration.Minutes()), f.Filename})
+}
+
+//
+func (f *Flight) Xlsx(sheet *xlsx.Sheet) error {
+	r := sheet.AddRow()
+	c1 := r.AddCell()
+	c1.SetDate(f.Date)
+	c1.NumFmt = "dd.mm.yyyy"
+	c2 := r.AddCell()
+	c2.SetDateTime(f.TakeOff)
+	c2.NumFmt = "hh:mm"
+	r.AddCell().SetString(f.TakeOffSite)
+	c3 := r.AddCell()
+	c3.SetDateTime(f.Landing)
+	c3.NumFmt = "hh:mm"
+	r.AddCell().SetString(f.LandingSite)
+	r.AddCell().SetFloatWithFormat(f.Duration.Minutes(), "0.00")
+	r.AddCell().SetString(f.Filename)
+	return nil
 }
 
 //
 type Flights []*Flight
+
+func NewFlights() *Flights {
+	return &Flights{}
+}
+
+func (f *Flights) Add(flight *Flight) error {
+	*f = append(*f, flight)
+	return nil
+}
 
 //
 func (f Flights) Len() int {
@@ -136,10 +167,42 @@ func (f Flights) Swap(i, j int) {
 }
 
 //
-func (f *Flights) Output() *[][]string {
-	s := [][]string{}
+func (f *Flights) Csv(w *csv.Writer) {
+	w.Write([]string{"Date", "Takeoff", "Takeoff Site", "Landing", "Landing Site", "Duration", "Filename"})
 	for _, flight := range *f {
-		s = append(s, flight.Record())
+		flight.Csv(w)
 	}
-	return &s
+}
+
+//
+func (f *Flights) Xlsx(s *xlsx.Sheet) {
+	// header
+	// 1st line
+	r0 := s.AddRow()
+	ti := r0.AddCell()
+	ti.Merge(6, 0)
+	ti.SetString("Flights")
+	r1 := s.AddRow()
+	r1.AddCell().SetString("Date")
+	to := r1.AddCell()
+	to.Merge(1, 0)
+	to.SetString("Takeoff")
+	r1.AddCell()
+	la := r1.AddCell()
+	la.Merge(1, 0)
+	la.SetString("Landing")
+	r1.AddCell()
+	r1.AddCell().SetString("Duration")
+	r1.AddCell().SetString("Filename")
+	// 2nd line
+	r2 := s.AddRow()
+	r2.AddCell()
+	r2.AddCell().SetString("Time")
+	r2.AddCell().SetString("Site")
+	r2.AddCell().SetString("Time")
+	r2.AddCell().SetString("Site")
+	// flights
+	for _, flight := range *f {
+		flight.Xlsx(s)
+	}
 }
