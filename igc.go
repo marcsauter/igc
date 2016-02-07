@@ -1,3 +1,4 @@
+// Package igc represents the IGC format as described in http://carrier.csi.cam.ac.uk/forsterlewis/soaring/igc_file_format/
 package igc
 
 import (
@@ -12,15 +13,15 @@ import (
 )
 
 const (
-	//
+	// Default URL for Google Maps API
 	GoogleMapsApiUrl = "https://maps.googleapis.com/maps/api/geocode/json?latlng=%f,%f"
 )
 
 var (
 	takeoff, landing Finder
-	//
+	// Maximal distance from closest known takeoff or landing site
 	MaxDistance = 300
-	//
+	// Error latitude with other than N/S suffix or longitude with other then E/W suffix
 	ErrWrongSuffix = errors.New("wrong suffix")
 )
 

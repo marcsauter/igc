@@ -27,6 +27,7 @@ type Flight struct {
 	Duration    time.Duration
 	Fixes       FixSlice
 	Filename    string
+	Comment     string
 }
 
 //
@@ -123,29 +124,42 @@ func (f *Flight) Csv(w *csv.Writer) error {
 //
 func (f *Flight) Xlsx(sheet *xlsx.Sheet) error {
 	r := sheet.AddRow()
+	//
 	c1 := r.AddCell()
 	c1.SetDate(f.Date)
 	c1.NumFmt = "dd.mm.yyyy"
+	//
 	c2 := r.AddCell()
-	c2.SetDateTime(f.TakeOff)
+	c2.SetDateTime(f.Landing)
 	c2.NumFmt = "hh:mm"
+	//
 	r.AddCell().SetString(f.TakeOffSite)
+	//
 	c3 := r.AddCell()
 	c3.SetDateTime(f.Landing)
 	c3.NumFmt = "hh:mm"
+	//
 	r.AddCell().SetString(f.LandingSite)
+	//
 	r.AddCell().SetFloatWithFormat(f.Duration.Minutes(), "0.00")
-	r.AddCell().SetString(f.Filename)
+	//
+	if len(f.Comment) > 0 {
+		r.AddCell().SetString(f.Comment)
+	} else {
+		r.AddCell().SetString(f.Filename)
+	}
 	return nil
 }
 
 //
 type Flights []*Flight
 
+//
 func NewFlights() *Flights {
 	return &Flights{}
 }
 
+//
 func (f *Flights) Add(flight *Flight) error {
 	*f = append(*f, flight)
 	return nil
@@ -177,26 +191,30 @@ func (f *Flights) Csv(w *csv.Writer) {
 //
 func (f *Flights) Xlsx(s *xlsx.Sheet) {
 	// header
-	// 1st line
+	// 1st line/row
 	r0 := s.AddRow()
 	ti := r0.AddCell()
-	ti.Merge(6, 0)
+	ti.Merge(6, 0) // merge with the following 6 cells
 	ti.SetString("Flights")
+	// 2nd line/row
 	r1 := s.AddRow()
 	r1.AddCell().SetString("Date")
+	//
 	to := r1.AddCell()
-	to.Merge(1, 0)
+	to.Merge(1, 0) // merge with the following cell
 	to.SetString("Takeoff")
-	r1.AddCell()
+	r1.AddCell() // cell to merge
+	//
 	la := r1.AddCell()
-	la.Merge(1, 0)
+	la.Merge(1, 0) // merge with the following cell
 	la.SetString("Landing")
-	r1.AddCell()
+	r1.AddCell() // cell to merge
+	//
 	r1.AddCell().SetString("Duration")
 	r1.AddCell().SetString("Filename")
-	// 2nd line
+	// 3rd line/row
 	r2 := s.AddRow()
-	r2.AddCell()
+	r2.AddCell() // start with an empty cell
 	r2.AddCell().SetString("Time")
 	r2.AddCell().SetString("Site")
 	r2.AddCell().SetString("Time")
