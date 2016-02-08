@@ -130,7 +130,7 @@ func (f *Flight) Xlsx(sheet *xlsx.Sheet) error {
 	c1.NumFmt = "dd.mm.yyyy"
 	//
 	c2 := r.AddCell()
-	c2.SetDateTime(f.Landing)
+	c2.SetDateTime(f.TakeOff)
 	c2.NumFmt = "hh:mm"
 	//
 	r.AddCell().SetString(f.TakeOffSite)
