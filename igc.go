@@ -85,36 +85,31 @@ func ParseLongitude(l string) float64 {
 //
 func LookupTakeOffSite(lat, lon float64) string {
 	var place string
-	coord := fmt.Sprintf("(%.4f, %.4f)", lat, lon)
 	if takeoff != nil {
 		if place, dist := takeoff.Find(lat, lon); len(place) > 0 && dist <= MaxDistance {
-			return fmt.Sprintf("%s %s", place, coord)
+			return place
 		}
 	}
 	place = LookupPlaceWithGoogleMaps(lat, lon)
 	if len(place) > 0 {
-		return fmt.Sprintf("%s %s", place, coord)
+		return place
 	}
-	return coord
+	return ""
 }
 
 //
 func LookupLandingSite(lat, lon float64) string {
 	var place string
-	coord := fmt.Sprintf("(%.4f, %.4f)", lat, lon)
 	if landing != nil {
 		if place, dist := landing.Find(lat, lon); len(place) > 0 && dist <= MaxDistance {
-			return fmt.Sprintf("%s %s", place, coord)
+			return place
 		}
-	}
-	if len(place) > 0 {
-		return fmt.Sprintf("%s %s", place, coord)
 	}
 	place = LookupPlaceWithGoogleMaps(lat, lon)
 	if len(place) > 0 {
-		return fmt.Sprintf("%s %s", place, coord)
+		return place
 	}
-	return coord
+	return ""
 }
 
 //
