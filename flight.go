@@ -49,6 +49,10 @@ func (f *Flight) parse(r io.Reader) error {
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		line := scanner.Text()
+		// ignore blank lines
+		if len(line) == 0 {
+			continue
+		}
 		switch line[0] {
 		case 'H':
 			f.parseHrecord(line)
