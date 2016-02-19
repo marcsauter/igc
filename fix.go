@@ -74,10 +74,10 @@ func (p FixSlice) TakeOff() Fix {
 		case 'V':
 			return p[i]
 		default:
-			log.Fatal()
+			log.Fatal("invalid fix")
 		}
 	}
-	return p[0]
+	return Fix{}
 }
 
 // Landing returns the landing fix
