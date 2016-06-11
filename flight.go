@@ -75,9 +75,13 @@ func (f *Flight) parseHrecord(line string) {
 			log.Fatal(err)
 		}
 	case "SIT":
-		f.Site = convert(strings.Split(line, ": ")[1])
+		if d := strings.Split(line, ": "); len(d) == 2 {
+			f.Site = convert(d[1])
+		}
 	case "GTY":
-		f.Glider = convert(strings.Split(line, ": ")[1])
+		if d := strings.Split(line, ": "); len(d) == 2 {
+			f.Glider = convert(d[1])
+		}
 	}
 }
 
