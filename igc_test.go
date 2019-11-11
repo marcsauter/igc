@@ -1,9 +1,13 @@
-package igc
+package igc_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/marcsauter/igc"
+)
 
 func TestParse(t *testing.T) {
-	if _, err := NewFlight("sample.igc"); err != nil {
+	if _, err := igc.NewFlightFromFile("sample.igc"); err != nil {
 		t.Error(err)
 	}
 }

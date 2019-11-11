@@ -1,4 +1,3 @@
-// Package igc represents the IGC format as described in http://carrier.csi.cam.ac.uk/forsterlewis/soaring/igc_file_format/
 package igc
 
 import (

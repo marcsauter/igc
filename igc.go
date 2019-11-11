@@ -1,4 +1,4 @@
-// Package igc represents the IGC format as described in http://carrier.csi.cam.ac.uk/forsterlewis/soaring/igc_file_format/
+// Package igc represents the IGC format as described in http://vali.fai-civl.org/documents/IGC-Spec_v1.00.pdf
 package igc
 
 import (

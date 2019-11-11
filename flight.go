@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-//
+// Flight represents a recorded flight
 type Flight struct {
 	RawDate     string
 	Date        time.Time
@@ -26,8 +26,8 @@ type Flight struct {
 	Comment     string
 }
 
-//
-func NewFlight(path string) (*Flight, error) {
+// NewFlightFromFile reaturns a flight evaluated from a igc file
+func NewFlightFromFile(path string) (*Flight, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func NewFlight(path string) (*Flight, error) {
 	return flight, nil
 }
 
-//
+// parse a flight
 func (f *Flight) parse(r io.Reader) error {
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
@@ -64,7 +64,7 @@ func (f *Flight) parse(r io.Reader) error {
 	return nil
 }
 
-//
+// parseHrecord
 func (f *Flight) parseHrecord(line string) {
 	switch line[2:5] {
 	case "DTE":
@@ -85,7 +85,7 @@ func (f *Flight) parseHrecord(line string) {
 	}
 }
 
-//
+// evaluate
 func (f *Flight) evaluate() error {
 	sort.Sort(f.Fixes)
 	f.TakeOff = f.Fixes.TakeOff()
@@ -96,39 +96,40 @@ func (f *Flight) evaluate() error {
 	return nil
 }
 
-//
+// Flights
 type Flights []*Flight
 
-//
+// NewFlights
 func NewFlights() *Flights {
 	return &Flights{}
 }
 
-//
+// Add
 func (f *Flights) Add(flight *Flight) error {
 	*f = append(*f, flight)
 	return nil
 }
 
-//
+// Len
 func (f Flights) Len() int {
 	return len(f)
 }
 
-//
+// Less
 func (f Flights) Less(i, j int) bool {
 	return f[i].TakeOff.Time.Before(f[j].TakeOff.Time)
 }
 
-//
+// Swap
 func (f Flights) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
 
+// convert
 func convert(s string) string {
 	s = strings.Trim(s, " ")
 	r := make([]rune, len(s))
-	for i, _ := range s {
+	for i := range s {
 		r[i] = rune(s[i])
 	}
 	return string(r)
